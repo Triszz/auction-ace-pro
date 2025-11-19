@@ -84,14 +84,23 @@ export const Header = () => {
           </form>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <Heart className="h-4 w-4" />
-              <span className="sr-only">Yêu thích</span>
-            </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <User className="h-4 w-4" />
-              <span className="sr-only">Tài khoản</span>
-            </Button>
+            <Link to="/profile">
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <Heart className="h-4 w-4" />
+                <span className="sr-only">Yêu thích</span>
+              </Button>
+            </Link>
+            <Link to="/profile">
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <User className="h-4 w-4" />
+                <span className="sr-only">Tài khoản</span>
+              </Button>
+            </Link>
+            <Link to="/auth">
+              <Button size="sm" className="hidden md:inline-flex">
+                Đăng nhập
+              </Button>
+            </Link>
             <Button variant="ghost" size="icon" className="h-9 w-9 md:hidden">
               <Menu className="h-4 w-4" />
               <span className="sr-only">Menu</span>
