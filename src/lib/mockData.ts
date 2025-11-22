@@ -237,4 +237,12 @@ export const mockQA = [
     askedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
     answeredAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 + 1 * 60 * 60 * 1000),
   },
+  {
+    id: "3",
+    question: "Pin của máy còn tốt không ạ? Độ chai pin bao nhiêu %?",
+    questioner: "****Minh",
+    answer: null,
+    askedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    answeredAt: null,
+  },
 ];
