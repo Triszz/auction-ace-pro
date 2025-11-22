@@ -11,6 +11,7 @@ import Search from "./pages/Search";
 import Profile from "./pages/Profile";
 import CreateProduct from "./pages/CreateProduct";
 import SellerProducts from "./pages/SellerProducts";
+import EditProductDescription from "./pages/EditProductDescription";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/seller/create-product" element={<CreateProduct />} />
           <Route path="/seller/products" element={<SellerProducts />} />
+          <Route path="/seller/products/:id/edit-description" element={<EditProductDescription />} />
           <Route path="/admin/categories" element={<AdminCategories />} />
           <Route path="/admin/products" element={<AdminProducts />} />
           <Route path="/admin/users" element={<AdminUsers />} />

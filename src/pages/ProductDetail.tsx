@@ -10,6 +10,18 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Heart,
   Share2,
@@ -20,18 +32,53 @@ import {
   MessageSquare,
   Gavel,
   ShoppingCart,
+  Ban,
+  Send,
 } from "lucide-react";
 import { mockProducts, mockBidHistory, mockQA } from "@/lib/mockData";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
 
 const ProductDetail = () => {
   const { id } = useParams();
+  const { toast } = useToast();
   const product = mockProducts.find((p) => p.id === id) || mockProducts[0];
   const relatedProducts = mockProducts.filter((p) => p.id !== id).slice(0, 5);
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [bidAmount, setBidAmount] = useState(product.currentPrice + product.stepPrice);
+  const [question, setQuestion] = useState("");
+  const [replyText, setReplyText] = useState("");
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  
+  // Mock user role - in real app, get from auth context
+  const isSeller = true; // Change this based on actual user role
+  
+  const handleRejectBid = (bidderName: string) => {
+    toast({
+      title: "Đã từ chối lượt đấu giá",
+      description: `Người dùng ${bidderName} đã bị từ chối đấu giá sản phẩm này`,
+    });
+  };
+
+  const handleSubmitQuestion = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast({
+      title: "Đã gửi câu hỏi",
+      description: "Người bán sẽ nhận được thông báo qua email",
+    });
+    setQuestion("");
+  };
+
+  const handleReplyQuestion = (questionId: string) => {
+    toast({
+      title: "Đã trả lời câu hỏi",
+      description: "Người hỏi sẽ nhận được thông báo qua email",
+    });
+    setReplyText("");
+    setReplyingTo(null);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -246,7 +293,7 @@ const ProductDetail = () => {
                       </div>
                     </div>
 
-                    {qa.answer && (
+                    {qa.answer ? (
                       <div className="ml-8 rounded-lg border bg-background p-4">
                         <div className="flex items-start gap-3">
                           <Avatar className="h-8 w-8">
@@ -263,17 +310,67 @@ const ProductDetail = () => {
                           </div>
                         </div>
                       </div>
+                    ) : isSeller && (
+                      <div className="ml-8">
+                        {replyingTo === qa.id ? (
+                          <div className="space-y-2 rounded-lg border bg-background p-4">
+                            <Label>Trả lời câu hỏi</Label>
+                            <Textarea
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder="Nhập câu trả lời..."
+                              className="min-h-[80px]"
+                            />
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleReplyQuestion(qa.id)}
+                              >
+                                <Send className="h-4 w-4 mr-1" />
+                                Gửi
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  setReplyingTo(null);
+                                  setReplyText("");
+                                }}
+                              >
+                                Hủy
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setReplyingTo(qa.id)}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-1" />
+                            Trả lời
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}
 
-                <Separator />
-
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">Đặt câu hỏi cho người bán</label>
-                  <Textarea placeholder="Nhập câu hỏi của bạn..." />
-                  <Button>Gửi câu hỏi</Button>
-                </div>
+                {!isSeller && (
+                  <>
+                    <Separator />
+                    <form onSubmit={handleSubmitQuestion} className="space-y-3">
+                      <label className="text-sm font-medium">Đặt câu hỏi cho người bán</label>
+                      <Textarea 
+                        value={question}
+                        onChange={(e) => setQuestion(e.target.value)}
+                        placeholder="Nhập câu hỏi của bạn..." 
+                        required
+                      />
+                      <Button type="submit">Gửi câu hỏi</Button>
+                    </form>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -292,19 +389,46 @@ const ProductDetail = () => {
                   {mockBidHistory.map((bid, idx) => (
                     <div
                       key={bid.id}
-                      className={`flex items-center justify-between rounded-lg p-3 ${
+                      className={`rounded-lg p-3 ${
                         idx === 0 ? "bg-primary/10 border border-primary" : "bg-muted"
                       }`}
                     >
-                      <div>
-                        <p className="font-semibold">{bid.bidder}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(bid.time, { addSuffix: true, locale: vi })}
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="font-semibold">{bid.bidder}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(bid.time, { addSuffix: true, locale: vi })}
+                          </p>
+                        </div>
+                        <p className={`font-bold ${idx === 0 ? "text-primary" : ""}`}>
+                          {bid.amount.toLocaleString("vi-VN")}₫
                         </p>
                       </div>
-                      <p className={`font-bold ${idx === 0 ? "text-primary" : ""}`}>
-                        {bid.amount.toLocaleString("vi-VN")}₫
-                      </p>
+                      {isSeller && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm" className="w-full">
+                              <Ban className="h-4 w-4 mr-1" />
+                              Từ chối
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Xác nhận từ chối lượt đấu giá</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Bạn có chắc chắn muốn từ chối lượt đấu giá của {bid.bidder}? 
+                                Người này sẽ không được phép đấu giá sản phẩm này nữa.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Hủy</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleRejectBid(bid.bidder)}>
+                                Xác nhận
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   ))}
                 </div>
