@@ -50,10 +50,12 @@ export default function SellerProducts() {
                           <Eye className="h-4 w-4 mr-1" />
                           Xem
                         </Button>
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4 mr-1" />
-                          Sửa mô tả
-                        </Button>
+                        <Link to={`/seller/products/${product.id}/edit-description`}>
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4 mr-1" />
+                            Sửa mô tả
+                          </Button>
+                        </Link>
                         <Button variant="destructive" size="sm">
                           <Trash2 className="h-4 w-4" />
                         </Button>
