@@ -15,6 +15,7 @@ import EditProductDescription from "./pages/EditProductDescription";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminAuctionSettings from "./pages/admin/AdminAuctionSettings";
 import OrderCompletion from "./pages/OrderCompletion";
 import NotFound from "./pages/NotFound";
 
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/admin/categories" element={<AdminCategories />} />
           <Route path="/admin/products" element={<AdminProducts />} />
           <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/auction-settings" element={<AdminAuctionSettings />} />
           <Route path="/order/:id" element={<OrderCompletion />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
