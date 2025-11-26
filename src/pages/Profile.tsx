@@ -8,11 +8,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ProductCard } from "@/components/ProductCard";
-import { Star, ThumbsUp, ThumbsDown, Package, Heart, Gavel, Award } from "lucide-react";
+import { Star, ThumbsUp, ThumbsDown, Package, Heart, Gavel, Award, Clock, XCircle } from "lucide-react";
 import { mockProducts } from "@/lib/mockData";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState("info");
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<string | number | null>(null);
+  const { toast } = useToast();
   
   // Mock user data
   const user = {
@@ -35,7 +40,52 @@ export default function Profile() {
   const biddingProducts = mockProducts.slice(4, 8);
   const wonProducts = mockProducts.slice(8, 12);
   const activeProducts = mockProducts.slice(0, 6);
-  const soldProducts = mockProducts.slice(6, 10);
+  
+  // Mock sold products with payment status
+  const pendingPaymentProducts = mockProducts.slice(6, 8).map((product, index) => ({
+    ...product,
+    winnerId: index + 1,
+    winnerName: `Người thắng ${index + 1}`,
+    auctionEndDate: new Date(Date.now() - (index + 2) * 24 * 60 * 60 * 1000).toISOString(),
+    paymentDeadline: new Date(Date.now() + (7 - (index + 2)) * 24 * 60 * 60 * 1000).toISOString(),
+    paymentStatus: 'pending'
+  }));
+  
+  const paidProducts = mockProducts.slice(8, 10).map((product, index) => ({
+    ...product,
+    winnerId: index + 10,
+    winnerName: `Người thắng ${index + 10}`,
+    auctionEndDate: new Date(Date.now() - (index + 10) * 24 * 60 * 60 * 1000).toISOString(),
+    paymentDate: new Date(Date.now() - (index + 5) * 24 * 60 * 60 * 1000).toISOString(),
+    paymentStatus: 'paid'
+  }));
+
+  const handleCancelTransaction = (productId: string | number) => {
+    setSelectedProduct(productId);
+    setCancelDialogOpen(true);
+  };
+
+  const confirmCancelTransaction = () => {
+    // In real app, this would call API to cancel transaction and apply -1 rating
+    toast({
+      title: "Giao dịch đã bị hủy",
+      description: "Người thắng đã nhận -1 điểm đánh giá",
+    });
+    setCancelDialogOpen(false);
+    setSelectedProduct(null);
+  };
+
+  const isPaymentOverdue = (deadlineStr: string) => {
+    return new Date(deadlineStr) < new Date();
+  };
+
+  const getDaysUntilDeadline = (deadlineStr: string) => {
+    const deadline = new Date(deadlineStr);
+    const now = new Date();
+    const diffTime = deadline.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -82,7 +132,7 @@ export default function Profile() {
 
           <div className="lg:col-span-3">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className={`grid w-full ${user.role === "seller" ? "grid-cols-7" : "grid-cols-5"}`}>
+              <TabsList className={`grid w-full ${user.role === "seller" ? "grid-cols-8" : "grid-cols-5"}`}>
                 <TabsTrigger value="info">Thông tin</TabsTrigger>
                 <TabsTrigger value="watchlist">Yêu thích</TabsTrigger>
                 <TabsTrigger value="bidding">Đang đấu giá</TabsTrigger>
@@ -91,6 +141,7 @@ export default function Profile() {
                 {user.role === "seller" && (
                   <>
                     <TabsTrigger value="selling">Đang bán</TabsTrigger>
+                    <TabsTrigger value="pending-payment">Chờ thanh toán</TabsTrigger>
                     <TabsTrigger value="sold">Đã bán</TabsTrigger>
                   </>
                 )}
@@ -240,6 +291,74 @@ export default function Profile() {
                     </Card>
                   </TabsContent>
 
+                  <TabsContent value="pending-payment">
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-5 w-5" />
+                          <CardTitle>Chờ thanh toán</CardTitle>
+                        </div>
+                        <CardDescription>Sản phẩm đã thắng nhưng chưa thanh toán (hạn mặc định: 1 tuần)</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {pendingPaymentProducts.map(product => (
+                            <div key={product.id} className="border rounded-lg p-4">
+                              <div className="flex gap-4">
+                                <img 
+                                  src={product.image} 
+                                  alt={product.title}
+                                  className="w-24 h-24 object-cover rounded"
+                                />
+                                <div className="flex-1">
+                                  <h3 className="font-semibold mb-1">{product.title}</h3>
+                                  <p className="text-sm text-muted-foreground mb-2">
+                                    Người thắng: <span className="font-medium">{product.winnerName}</span>
+                                  </p>
+                                  <p className="text-sm mb-2">
+                                    Giá thắng: <span className="font-bold text-primary">{product.currentPrice.toLocaleString('vi-VN')} ₫</span>
+                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    {isPaymentOverdue(product.paymentDeadline) ? (
+                                      <Badge variant="destructive" className="flex items-center gap-1">
+                                        <XCircle className="h-3 w-3" />
+                                        Quá hạn thanh toán
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="secondary" className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        Còn {getDaysUntilDeadline(product.paymentDeadline)} ngày
+                                      </Badge>
+                                    )}
+                                    <span className="text-xs text-muted-foreground">
+                                      Hạn: {new Date(product.paymentDeadline).toLocaleDateString('vi-VN')}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col justify-center">
+                                  {isPaymentOverdue(product.paymentDeadline) && (
+                                    <Button 
+                                      variant="destructive" 
+                                      size="sm"
+                                      onClick={() => handleCancelTransaction(product.id)}
+                                    >
+                                      Hủy giao dịch
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {pendingPaymentProducts.length === 0 && (
+                            <p className="text-center text-muted-foreground py-8">
+                              Không có sản phẩm nào đang chờ thanh toán
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
                   <TabsContent value="sold">
                     <Card>
                       <CardHeader>
@@ -247,13 +366,39 @@ export default function Profile() {
                           <Award className="h-5 w-5" />
                           <CardTitle>Sản phẩm đã bán</CardTitle>
                         </div>
-                        <CardDescription>Các sản phẩm đã kết thúc đấu giá</CardDescription>
+                        <CardDescription>Các sản phẩm đã hoàn tất thanh toán</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {soldProducts.map(product => (
-                            <ProductCard key={product.id} {...product} />
+                        <div className="space-y-4">
+                          {paidProducts.map(product => (
+                            <div key={product.id} className="border rounded-lg p-4">
+                              <div className="flex gap-4">
+                                <img 
+                                  src={product.image} 
+                                  alt={product.title}
+                                  className="w-24 h-24 object-cover rounded"
+                                />
+                                <div className="flex-1">
+                                  <h3 className="font-semibold mb-1">{product.title}</h3>
+                                  <p className="text-sm text-muted-foreground mb-2">
+                                    Người mua: <span className="font-medium">{product.winnerName}</span>
+                                  </p>
+                                  <p className="text-sm mb-2">
+                                    Giá bán: <span className="font-bold text-primary">{product.currentPrice.toLocaleString('vi-VN')} ₫</span>
+                                  </p>
+                                  <Badge variant="default" className="flex items-center gap-1 w-fit">
+                                    <ThumbsUp className="h-3 w-3" />
+                                    Đã thanh toán: {new Date(product.paymentDate).toLocaleDateString('vi-VN')}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
                           ))}
+                          {paidProducts.length === 0 && (
+                            <p className="text-center text-muted-foreground py-8">
+                              Chưa có sản phẩm nào được thanh toán
+                            </p>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -264,6 +409,24 @@ export default function Profile() {
           </div>
         </div>
       </main>
+
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận hủy giao dịch</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn hủy giao dịch này? Người thắng sẽ nhận -1 điểm đánh giá với nội dung: 
+              "Người thắng không thanh toán khi đã quá thời hạn thanh toán".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancelTransaction}>
+              Xác nhận
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
